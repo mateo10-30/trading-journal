@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Journal</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="defaultValues.js"></script>
+<style>
+:root {
+  --bg-primary: #e2e8f0;
+  --bg-card: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --border-color: #cbd5e1;
+  --calendar-hover: #e2e6ea;
+  --profitable-bg: rgba(20, 83, 45, 0.2);
+  --profitable-text: #15803d;
+  --loss-bg: rgba(153, 27, 27, 0.2);
+  --loss-text: #b91c1c;
+  --neutral-bg: rgba(51, 65, 85, 0.08);
+  --shadow-color: rgba(15, 23, 42, 0.1);
+  --chart-color: #1e40af;
+  --chart-bg: rgba(30, 64, 175, 0.15);
+}
+  .dark-mode {
+    --bg-primary: #121212;
+    --bg-card: #1e1e1e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #aaaaaa;
+    --border-color: #333333;
+    --calendar-hover: #404040;
+  --profitable-bg: rgba(0, 200, 83, 0.3); /* Increased opacity */
+    --profitable-text: #00e676;
+  --loss-bg: rgba(244, 67, 54, 0.3); /* Increased opacity */
+    --loss-text: #ff5252;
+    --neutral-bg: rgba(255, 255, 255, 0.05);
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --chart-color: #90caf9;
+  --chart-bg: rgba(144, 202, 249, 0.2); /* Increased opacity */
+  --chart-grid: rgba(255, 255, 255, 0.1); /* Grid lines */
+  --chart-text: #e0e0e0; /* Chart text */
+
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+  
+  body {
+    background-color: var(--bg-primary);
+    padding: 20px;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+  }
+  
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    padding: 20px;
+  }
+  
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .header-title {
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-title h1 {
+    font-size: 24px;
+    margin-left: 10px;
+    color: var(--text-primary);
+  }
+  
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+  }
+  
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    margin: 0 8px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #4f46e5;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #4f46e5;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(24px);
+  }
+  
+  .card {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .card-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+  }
+  
+  .card-title svg {
+    margin-right: 8px;
+  }
+  
+  .month-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .month-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+  
+  .nav-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    color: var(--text-primary);
+  }
+  
+  .nav-button:hover {
+    background-color: var(--neutral-bg);
+  }
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr); /* Remove the 0.8fr column */
+  gap: 4px;
+}
+
+  .calendar-header {
+    text-align: center;
+    font-weight: 500;
+    padding: 8px;
+    color: var(--text-primary);
+  }
+  
+  .calendar-day {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .calendar-day:hover {
+    background-color: var(--calendar-hover);
+  }
+  
+  .day-number {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+  
+.day-pnl {
+  font-size: 14px; /* Increased from 12px */
+  font-weight: 600; /* Bold text (600 is semi-bold) */
+  display: flex;
+  align-items: center;
+  margin-top: 4px; /* Add some space between day number and value */
+}  
+  .edit-icon {
+    width: 12px;
+    height: 12px;
+    margin-left: 3px;
+    opacity: 0.5;
+    display: none; /* Hide the edit icons */
+  }
+  
+  .profitable {
+    background-color: var(--profitable-bg);
+  }
+  
+  .profitable .day-pnl {
+    color: var(--profitable-text);
+  }
+  
+  .loss {
+    background-color: var(--loss-bg);
+  }
+  
+  .loss .day-pnl {
+    color: var(--loss-text);
+  }
+  
+  .neutral {
+    background-color: var(--neutral-bg);
+  }
+  
+  .neutral .day-pnl {
+    color: var(--text-secondary);
+  }
+  
+  .editing {
+    background-color: var(--calendar-hover);
+  }
+  
+  .pnl-input {
+    width: 70px;
+    padding: 4px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+  }
+  
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.metric-box {
+  border: 1px solid var(--border-color);
+  border-radius: 8px; /* Increased from 4px for a slightly more modern look */
+  padding: 16px; /* Increased from 12px to give more breathing room */
+  text-align: center; /* Center the text for a cleaner look */
+  transition: all 0.2s ease; /* Smooth transition for hover effects */
+}
+
+.metric-box:hover {
+  box-shadow: 0 2px 8px var(--shadow-color); /* Add shadow on hover */
+  transform: translateY(-2px); /* Slight upward movement on hover */
+}
+
+.metric-label {
+  font-size: 14px; /* Increased from 12px for better readability */
+  color: var(--text-secondary);
+  margin-bottom: 6px; /* Increased from 4px for better spacing */
+  font-weight: 500; /* Added medium weight for better prominence */
+}
+
+.metric-value {
+  font-size: 22px; /* Increased from 18px for better visual impact */
+  font-weight: 600;
+  color: var(--text-primary);
+}  
+  .positive {
+    color: var(--profitable-text);
+  }
+  
+  .negative {
+    color: var(--loss-text);
+  }
+  
+  .note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .chart-container {
+    height: 300px;
+    width: 100%;
+  }
+  
+  .weekly-total {
+  background-color: var(--neutral-bg);
+  border-radius: 4px;
+  padding: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 70px;
+  border: 1px solid var(--border-color);
+}
+
+.weekly-total-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.weekly-total-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekly-total-value.positive {
+  color: var(--profitable-text);
+}
+
+.weekly-total-value.negative {
+  color: var(--loss-text);
+}
+  
+.week-chart-container {
+  height: 250px;
+  width: 100%;
+  position: relative;
+}
+  
+  @media (max-width: 768px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+<div class="header">
+  <div class="header-title">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+    <h1>Trading Journal</h1>
+  </div>
+  
+  <div class="theme-toggle">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+    <!-- Add this button next to your other controls -->
+<button id="exportDataBtn" style="margin-left: 10px; padding: 5px 10px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">Save</button>
+    <label class="switch">
+      <input type="checkbox" id="themeToggle">
+      <span class="slider"></span>
+    </label>
+    
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </div>
+</div>   
+
+<div class="card">
+  <div class="metrics-grid">
+  
+      <div class="metric-box">
+      <div class="metric-label">Current Balance</div>
+      <div class="metric-value" id="currentBalance">€1,000.00</div>
+    </div>
+  
+    <div class="metric-box">
+      <div class="metric-label">Monthly P&L</div>
+      <div class="metric-value" id="totalPnL">€0.00</div>
+    </div>
+    
+
+    
+    <div class="metric-box">
+      <div class="metric-label">Monthly % Gain</div>
+      <div class="metric-value" id="monthlyPercentGain">0.00%</div>
+    </div>
+  </div>
+</div>
+ 
+    <div class="card">
+      <div class="month-nav">
+        <button class="nav-button" id="prevMonthBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="month-title" id="currentMonth">February 2025</div>
+        <button class="nav-button" id="nextMonthBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="calendar" id="calendar">
+        <!-- Calendar will be populated by JavaScript -->
+      </div>
+    </div>
+    
+<div class="card" id="weekTotalsCard" style="display: none;">
+  <div class="card-title">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3v18h18"></path>
+      <path d="M22 7l-8.5 8.5-5-5L2 17"></path>
+    </svg>
+    Weekly Results
+  </div>
+  
+  <div id="weekChartContainer" class="week-chart-container">
+    <!-- Chart will be populated by JavaScript -->
+  </div>
+</div>	
+    
+    <div class="card">
+      <div class="card-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m22 7-8.5 8.5-5-5L2 17"></path>
+        </svg>
+        Equity Curve
+      </div>
+      
+      <div class="chart-container">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // State management
+// State management
+const state = {
+  currentDate: new Date(),
+  tradeData: {},
+  editingDate: null,
+  darkMode: localStorage.getItem('darkMode') === 'true'
+};
+
+// Add this line:
+  // DOM elements
+// DOM elements
+const currentMonthElement = document.getElementById('currentMonth');
+// Add this line:
+const currentBalanceElement = document.getElementById('currentBalance');
+// Rest of your DOM elements...  
+  const prevMonthBtn = document.getElementById('prevMonthBtn');
+  const nextMonthBtn = document.getElementById('nextMonthBtn');
+  const calendarElement = document.getElementById('calendar');
+  const totalPnLElement = document.getElementById('totalPnL');
+  const winRateElement = document.getElementById('winRate');
+  //const profitFactorElement = document.getElementById('profitFactor');
+  const avgWinElement = document.getElementById('avgWin');
+  const avgLossElement = document.getElementById('avgLoss');
+  const bestDayElement = document.getElementById('bestDay');
+  const worstDayElement = document.getElementById('worstDay');
+  const currentStreakElement = document.getElementById('currentStreak');
+  const longestWinStreakElement = document.getElementById('longestWinStreak');
+  const longestLossStreakElement = document.getElementById('longestLossStreak');
+  const themeToggle = document.getElementById('themeToggle');
+
+  // Chart
+  let equityChart = null;
+
+  // Local Storage Keys
+  const DATA_STORAGE_KEY = 'tradingTrackerData';
+  const THEME_STORAGE_KEY = 'darkMode';
+
+  // fize the application
+  function initialize() {
+    // Set initial theme
+    if (state.darkMode) {
+      document.body.classList.add('dark-mode');
+      themeToggle.checked = true;
+    }
+    
+    // Load data from local storage if available
+    loadFromLocalStorage();
+    
+    // Initialize calendar and data for current month if not already exists
+    initializeMonthData();
+    
+    // Render UI
+    updateMonthDisplay();
+    renderCalendar();
+    calculateStats();
+    renderEquityCurve();
+    
+    // Set up event listeners
+    prevMonthBtn.addEventListener('click', navigateToPrevMonth);
+    nextMonthBtn.addEventListener('click', navigateToNextMonth);
+    themeToggle.addEventListener('change', toggleTheme);
+	
+	  // Add export button event listener
+  const exportDataBtn = document.getElementById('exportDataBtn');
+  if (exportDataBtn) {
+    exportDataBtn.addEventListener('click', exportCurrentDataAsDefaults);
+  }
+
+  }
+
+  // Toggle dark/light theme
+  function toggleTheme() {
+    state.darkMode = themeToggle.checked;
+    
+    if (state.darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+    
+    // Save theme preference
+    localStorage.setItem(THEME_STORAGE_KEY, state.darkMode);
+    
+    // Update chart with new theme colors
+    renderEquityCurve();
+	
+	  // Add this line to re-render the weekly chart with the new theme
+  if (document.getElementById('weekTotalsCard').style.display !== 'none') {
+    const year = state.currentDate.getFullYear();
+    const month = state.currentDate.getMonth();
+    renderCalendar();
+  }
+
+  }
+
+  // Load data from local storage
+  function loadFromLocalStorage() {
+    const savedData = localStorage.getItem(DATA_STORAGE_KEY);
+    if (savedData) {
+      state.tradeData = JSON.parse(savedData);
+    }
+  }
+
+  // Save data to local storage
+  function saveToLocalStorage() {
+    localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(state.tradeData));
+  }
+
+
+function initializeMonthData() {
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  
+  let initialized = false;
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (state.tradeData[dateStr] === undefined) {
+      // Check if we have a default value for this date
+      if (defaultValues[dateStr] !== undefined) {
+        state.tradeData[dateStr] = defaultValues[dateStr];
+      } else {
+        state.tradeData[dateStr] = 0;
+      }
+      initialized = true;
+    }
+  }
+  
+  if (initialized) {
+    saveToLocalStorage();
+  }
+}
+
+
+
+  // Update the month display
+  function updateMonthDisplay() {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const month = monthNames[state.currentDate.getMonth()];
+    const year = state.currentDate.getFullYear();
+    
+    currentMonthElement.textContent = `${month} ${year}`;
+  }
+
+function renderCalendar() {
+  calendarElement.innerHTML = '';
+  
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  // Add headers
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  days.forEach(day => {
+    const header = document.createElement('div');
+    header.className = 'calendar-header';
+    header.textContent = day;
+    calendarElement.appendChild(header);
+  });
+  
+  // Determine the weekday of the 1st (0 = Sunday, 1 = Monday, etc.)
+  const firstDay = new Date(year, month, 1).getDay();
+  
+  // Calculate empty cells at the beginning (fix for the off-by-one error)
+  let emptyFirstCells = 0;
+  if (firstDay === 0) {
+    // Sunday, no empty cells needed since we'll start with Monday
+    emptyFirstCells = 0;
+  } else if (firstDay === 6) {
+    // Saturday, we'll also start with Monday
+    emptyFirstCells = 0;
+  } else {
+    // Mon-Fri, calculate empty cells
+    emptyFirstCells = firstDay - 1;
+  }
+  
+  // Add initial empty cells
+  for (let i = 0; i < emptyFirstCells; i++) {
+    calendarElement.appendChild(document.createElement('div'));
+  }
+  
+  // Track week totals
+  const weekTotals = [];
+  let currentWeekTotal = 0;
+
+  // Create all days in the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const dayOfWeek = date.getDay();
+    
+    // Skip weekend days
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+    
+    // Create the date string for this day
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const pnl = state.tradeData[dateStr] || 0;
+    
+    // Create day cell
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+    dayCell.dataset.date = dateStr;
+    
+    // Set color based on PnL (unless we're editing)
+    if (state.editingDate !== dateStr) {
+      if (pnl > 0) {
+        dayCell.classList.add('profitable');
+      } else if (pnl < 0) {
+        dayCell.classList.add('loss');
+      } else {
+        dayCell.classList.add('neutral');
+      }
+      
+      // Create and append day number first (at the top)
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'day-number';
+      dayNumber.textContent = String(day).padStart(2, '0'); // This will display 01, 02, 03, etc.
+      dayCell.appendChild(dayNumber);
+      
+      // Only add the PnL display if value is not zero (in the middle)
+      if (pnl !== 0) {
+        const pnlDisplay = document.createElement('div');
+        pnlDisplay.className = 'day-pnl';
+        pnlDisplay.textContent = formatCurrency(pnl);
+        dayCell.appendChild(pnlDisplay);
+      }
+    }
+    
+    // Add click event for editing
+    dayCell.addEventListener('click', (e) => {
+      e.stopPropagation(); // Stop event from bubbling up to document
+      
+      // If already editing this date, do nothing
+      if (state.editingDate === dateStr) return;
+      
+      // If editing a different date, complete that edit first
+      if (state.editingDate) {
+        updateDayValue(state.editingDate);
+      }
+      
+      // Set this as the new editing date
+      state.editingDate = dateStr;
+      
+      // Re-render to show the input field
+      renderCalendar();
+    });
+    
+    calendarElement.appendChild(dayCell);
+    
+    // Track week total
+    currentWeekTotal += pnl;
+    
+    // End of week or month
+    if (dayOfWeek === 5 || day === daysInMonth) {
+      weekTotals.push({
+        total: currentWeekTotal,
+        weekNumber: weekTotals.length + 1
+      });
+      currentWeekTotal = 0;
+    }
+  }
+
+  // After all days are created, check if we are editing any day
+  if (state.editingDate) {
+    const editingCell = document.querySelector(`.calendar-day[data-date="${state.editingDate}"]`);
+    if (editingCell) {
+      // Clear the cell content
+      editingCell.innerHTML = '';
+      editingCell.classList.add('editing');
+      
+      // Add the day number
+      const day = parseInt(state.editingDate.split('-')[2]);
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'day-number';
+      dayNumber.textContent = String(day).padStart(2, '0');
+      editingCell.appendChild(dayNumber);
+      
+      // Add an input field with current value
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = '0.01';
+      input.className = 'pnl-input';
+      input.value = state.tradeData[state.editingDate] || 0;
+      editingCell.appendChild(input);
+      
+      // Focus the input
+      setTimeout(() => input.focus(), 10);
+      
+      // Handle input events
+      input.addEventListener('keydown', (e) => {
+        e.stopPropagation(); // Prevent keydown from bubbling
+        if (e.key === 'Enter') {
+          updateDayValue(state.editingDate);
+        } else if (e.key === 'Escape') {
+          state.editingDate = null;
+          renderCalendar();
+        }
+      });
+      
+      // Add click handler to the input to prevent click from bubbling
+      input.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      
+      // Wait until the next tick to add the document click handler
+      // This prevents the current click from immediately closing the edit
+      setTimeout(() => {
+        const clickOutsideHandler = function(e) {
+          // Only proceed if we're still editing the same cell
+          if (state.editingDate && !editingCell.contains(e.target)) {
+            document.removeEventListener('click', clickOutsideHandler);
+            updateDayValue(state.editingDate);
+          }
+        };
+        document.addEventListener('click', clickOutsideHandler);
+      }, 10);
+    }
+  }
+
+  // Render the weekly chart
+  renderWeeklyChart(weekTotals);
+}
+
+  // Update a day's value
+function updateDayValue(dateStr) {
+  const input = document.querySelector(`.calendar-day[data-date="${dateStr}"] input`);
+  if (input) {
+    const value = parseFloat(input.value) || 0;
+    state.tradeData[dateStr] = value;
+    state.editingDate = null;
+    
+    // Save to local storage
+    saveToLocalStorage();
+    
+    // Update the UI
+    renderCalendar();
+    calculateStats();
+    renderEquityCurve();
+  }
+}
+
+
+ function calculateStats() {
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth() + 1;
+  
+  let totalPnL = 0;
+  
+  // Get all dates for the current month
+  const datesInMonth = [];
+  for (const dateStr in state.tradeData) {
+    if (dateStr.startsWith(`${year}-${String(month).padStart(2, '0')}`)) {
+      datesInMonth.push(dateStr);
+    }
+  }
+  
+  // Sort dates
+  datesInMonth.sort();
+  
+  // Calculate total PnL
+  for (const dateStr of datesInMonth) {
+    const pnl = state.tradeData[dateStr];
+    totalPnL += pnl;
+  }
+  
+  // Update the UI for total PnL
+  totalPnLElement.textContent = formatCurrency(totalPnL);
+  totalPnLElement.className = 'metric-value ' + (totalPnL >= 0 ? 'positive' : 'negative');
+  
+  // Get starting balance for the month
+  const startingBalance = getStartingBalance();
+  
+  // Calculate and update current balance - THIS IS THE FIX
+  const currentBalance = startingBalance + totalPnL;
+  currentBalanceElement.textContent = formatCurrency(currentBalance);
+  currentBalanceElement.className = 'metric-value';
+  
+  // Calculate monthly percentage gain
+  const monthlyPercentGain = startingBalance > 0 ? (totalPnL / startingBalance) * 100 : 0;
+  
+  // Find the monthly percent gain element and update it
+  const monthlyPercentGainElement = document.getElementById('monthlyPercentGain');
+  if (monthlyPercentGainElement) {
+    monthlyPercentGainElement.textContent = `${monthlyPercentGain.toFixed(2)}%`;
+    monthlyPercentGainElement.className = 'metric-value ' + (monthlyPercentGain >= 0 ? 'positive' : 'negative');
+  }
+}
+
+
+function renderEquityCurve() {
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth() + 1;
+  
+  // Get starting balance for the current month
+  let startingBalance = getStartingBalance();
+  
+  // Get all dates for current month
+  const datesInMonth = [];
+  for (const dateStr in state.tradeData) {
+    if (dateStr.startsWith(`${year}-${String(month).padStart(2, '0')}`)) {
+      // Check if it's a weekday (not weekend)
+      const date = new Date(dateStr);
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      
+      // Only include weekdays (1-5)
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        datesInMonth.push(dateStr);
+      }
+    }
+  }
+  
+  // Sort dates
+  datesInMonth.sort();
+  
+  // Calculate running balance
+  const labels = [];
+  const data = [];
+  let runningBalance = startingBalance;
+  
+  // If there are dates in the month, add a "Day 0" entry with the starting balance
+  if (datesInMonth.length > 0) {
+    // Add a "Start" label at the beginning to show starting balance
+    labels.push("Start");
+    data.push(startingBalance);
+  }
+  
+  datesInMonth.forEach(dateStr => {
+    runningBalance += state.tradeData[dateStr];
+    labels.push(dateStr.split('-')[2]); // Just the day
+    data.push(runningBalance);
+  });
+  
+  // Destroy previous chart if it exists
+  if (equityChart) {
+    equityChart.destroy();
+  }
+  
+  // Get theme colors with higher visibility for dark mode
+  const chartColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-color').trim();
+  const chartBg = getComputedStyle(document.documentElement).getPropertyValue('--chart-bg').trim();
+  const textColor = state.darkMode ? 
+    '#ffffff' : // Pure white in dark mode
+    getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+  const gridColor = state.darkMode ? 
+    'rgba(255, 255, 255, 0.1)' : 
+    getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+  
+  // Create new chart
+  const ctx = document.getElementById('equityChart').getContext('2d');
+  equityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Account Balance',
+        data: data,
+        borderColor: chartColor,
+        backgroundColor: chartBg,
+        borderWidth: 3, // Increased for better visibility
+        tension: 0.1,
+        fill: true,
+        pointRadius: 4 // Increased for better visibility
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `Balance: ${formatCurrency(context.raw)}`;
+            }
+          },
+          backgroundColor: state.darkMode ? '#333' : '#fff',
+          titleColor: state.darkMode ? '#fff' : '#000',
+          bodyColor: state.darkMode ? '#fff' : '#000',
+          borderColor: state.darkMode ? '#555' : '#ddd',
+          borderWidth: 1
+        },
+        legend: {
+          labels: {
+            color: textColor,
+            font: {
+              size: 14 // Increased for better visibility
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: function(value) {
+              return formatCurrency(value);
+            },
+            color: textColor, // Using the textColor variable
+            font: {
+              size: 14, // Increased from 13
+              weight: 'bold' // Added bold
+            }
+          },
+          grid: {
+            color: gridColor
+          }
+        },
+        x: {
+          ticks: {
+            color: textColor, // Using the textColor variable
+            font: {
+              size: 14, // Increased from 13
+              weight: 'bold' // Added bold
+            }
+          },
+          grid: {
+            color: gridColor
+          }
+        }
+      }
+    }
+  });
+}
+
+  // Navigate to previous month
+  function navigateToPrevMonth() {
+    const newDate = new Date(state.currentDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    state.currentDate = newDate;
+    state.editingDate = null;
+    
+    initializeMonthData();
+    updateMonthDisplay();
+    renderCalendar();
+    calculateStats();
+    renderEquityCurve();
+  }
+
+  // Navigate to next month
+  function navigateToNextMonth() {
+    const newDate = new Date(state.currentDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    state.currentDate = newDate;
+    state.editingDate = null;
+    
+    initializeMonthData();
+    updateMonthDisplay();
+    renderCalendar();
+    calculateStats();
+    renderEquityCurve();
+  }
+
+  // Format currency
+  function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  }
+
+// Get starting balance for the current month
+function getStartingBalance() {
+  const currentYear = state.currentDate.getFullYear();
+  const currentMonth = state.currentDate.getMonth() + 1;
+  
+  // If it's January of the first year of data, use the default starting balance
+  // We need to determine if this is the first year with data
+  const firstEntryDate = getFirstEntryDate();
+  if (firstEntryDate) {
+    const firstEntryYear = parseInt(firstEntryDate.split('-')[0]);
+    const firstEntryMonth = parseInt(firstEntryDate.split('-')[1]);
+    
+    if (currentYear === firstEntryYear && currentMonth === firstEntryMonth) {
+      return STARTING_BALANCE;
+    }
+  } else if (currentMonth === 1 && currentYear === new Date().getFullYear()) {
+    // If no previous data exists at all and we're in January of current year
+    return STARTING_BALANCE;
+  }
+  
+  // Calculate the previous month and year
+  let prevMonth = currentMonth - 1;
+  let prevYear = currentYear;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear--;
+  }
+  
+  // Find all entries from previous months (not just the immediate previous month)
+  let cumulativePnL = 0;
+  let foundPreviousData = false;
+  
+  for (const dateStr in state.tradeData) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    
+    // Check if this entry is from a previous month
+    if ((year < currentYear) || (year === currentYear && month < currentMonth)) {
+      cumulativePnL += state.tradeData[dateStr];
+      foundPreviousData = true;
+    }
+  }
+  
+  // If we found previous data, return starting balance plus all previous P&L
+  if (foundPreviousData) {
+    return STARTING_BALANCE + cumulativePnL;
+  }
+  
+  // If no data for any previous month, use default starting balance
+  return STARTING_BALANCE;
+}
+
+// Helper function to get the first date entry in the data
+function getFirstEntryDate() {
+  const dates = Object.keys(state.tradeData).sort();
+  return dates.length > 0 ? dates[0] : null;
+}
+
+// Function to get the first day of the week (Monday) for a given date
+function getFirstDayOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  
+  // If it's Sunday (0), go back 6 days to get to Monday
+  // If it's any other day, go back (day - 1) days
+  const diff = day === 0 ? 6 : day - 1;
+  
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+
+// Format a date as YYYY-MM-DD
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function renderWeeklyChart(weekTotals) {
+  // Show/hide week totals card based on whether there are totals
+  const weekTotalsCard = document.getElementById('weekTotalsCard');
+  const weekChartContainer = document.getElementById('weekChartContainer');
+  
+  // Static variable to track the chart instance
+  if (!renderWeeklyChart.chartInstance) {
+    renderWeeklyChart.chartInstance = null;
+  }
+  
+  // Calculate week totals ending on Fridays
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth();
+  
+  // Get the first day of the month
+  const firstDayOfMonth = new Date(year, month, 1);
+  
+  // Get the last day of the month
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  
+  // Find all Fridays in the month plus the current week (even if it's not yet Friday)
+  const fridays = [];
+  let currentDay = new Date(firstDayOfMonth);
+  const today = new Date();
+  
+  // Get the current day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  const currentDayOfWeek = today.getDay();
+  
+  // If today is after the last day of the month, don't add current week
+  const isCurrentMonthActive = today.getFullYear() === year && today.getMonth() === month;
+  
+  while (currentDay <= lastDayOfMonth) {
+    if (currentDay.getDay() === 5) { // 5 = Friday
+      fridays.push(new Date(currentDay));
+    }
+    currentDay.setDate(currentDay.getDate() + 1);
+  }
+  
+  // Add the current week if we're in the displayed month and it's not Friday yet
+  if (isCurrentMonthActive && currentDayOfWeek !== 5 && !fridays.some(friday => friday.getDate() >= today.getDate())) {
+    // Find the next Friday
+    const nextFriday = new Date(today);
+    const daysUntilFriday = (5 - currentDayOfWeek + 7) % 7;
+    nextFriday.setDate(today.getDate() + daysUntilFriday);
+    
+    // Only add if this Friday is still in the current month
+    if (nextFriday.getMonth() === month && nextFriday.getFullYear() === year) {
+      fridays.push(nextFriday);
+    }
+  }
+  
+  // Only consider Fridays if the week has at least one day with trading data
+  // Also include the current week that has started even if not complete
+  const completedFridays = fridays.filter(friday => {
+    // Get the Monday of this week
+    const monday = getFirstDayOfWeek(friday);
+    
+    // Check if any day in this week has trading data
+    let hasData = false;
+    const currentDate = new Date(monday);
+    const today = new Date();
+    
+    // If this is the current week (containing today), include it even without data
+    const isCurrentWeek = 
+      (today >= monday && today <= friday) || 
+      (today >= monday && friday > today);
+    
+    if (isCurrentWeek) {
+      return true;
+    }
+    
+    // Otherwise, check if any day in the week has data
+    while (currentDate <= friday) {
+      const dateStr = formatDate(currentDate);
+      if (state.tradeData[dateStr] !== undefined && state.tradeData[dateStr] !== 0) {
+        hasData = true;
+        break;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return hasData;
+  });
+  
+  // Calculate weekly totals for each week ending on a Friday
+  const weeklyResults = [];
+  
+  completedFridays.forEach((friday, index) => {
+    // Get the Monday of this week
+    const monday = getFirstDayOfWeek(friday);
+    
+    // Get all dates in this week (Monday to Friday)
+    const datesInWeek = [];
+    const currentDate = new Date(monday);
+    
+    while (currentDate <= friday) {
+      datesInWeek.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Calculate total for this week
+    let weekTotal = 0;
+    
+    datesInWeek.forEach(date => {
+      const dateStr = formatDate(date);
+      const pnl = state.tradeData[dateStr] || 0;
+      
+      if (pnl !== 0) {
+        weekTotal += pnl;
+      }
+    });
+    
+    weeklyResults.push({
+      total: weekTotal,
+      weekNumber: index + 1,
+      startDate: monday,
+      endDate: friday
+    });
+  });
+  
+  if (weeklyResults.length === 0) {
+    weekTotalsCard.style.display = 'none';
+    return;
+  }
+  
+  weekTotalsCard.style.display = 'block';
+  
+  // Clear the container and add a canvas for Chart.js
+  weekChartContainer.innerHTML = '<canvas id="weeklyChart"></canvas>';
+  const ctx = document.getElementById('weeklyChart').getContext('2d');
+  
+  // Clean up existing chart if it exists
+  if (renderWeeklyChart.chartInstance) {
+    renderWeeklyChart.chartInstance.destroy();
+  }
+  
+  // Prepare data for Chart.js
+  const labels = weeklyResults.map(week => {
+    const startMonth = week.startDate.getMonth() + 1;
+    const endMonth = week.endDate.getMonth() + 1;
+    
+    // If the week crosses months, include both month numbers
+    if (startMonth !== endMonth) {
+      return `${startMonth}/${week.startDate.getDate()}-${endMonth}/${week.endDate.getDate()}`;
+    }
+    
+    return `${week.startDate.getDate()}-${week.endDate.getDate()}`;
+  });
+  
+  const data = weeklyResults.map(week => week.total);
+  
+  // Get theme colors from CSS variables with improved visibility
+  const profitableBgColor = getComputedStyle(document.documentElement).getPropertyValue('--profitable-bg').trim();
+  const lossBgColor = getComputedStyle(document.documentElement).getPropertyValue('--loss-bg').trim();
+  const profitableTextColor = getComputedStyle(document.documentElement).getPropertyValue('--profitable-text').trim();
+  const lossTextColor = getComputedStyle(document.documentElement).getPropertyValue('--loss-text').trim();
+  const textColor = state.darkMode ? 
+    getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() : 
+    getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+  const gridColor = state.darkMode ? 
+    'rgba(255, 255, 255, 0.1)' : 
+    getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+  
+  // Create the chart
+  renderWeeklyChart.chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: data.map(value => value >= 0 ? profitableBgColor : lossBgColor),
+        borderColor: data.map(value => value >= 0 ? profitableTextColor : lossTextColor),
+        borderWidth: 2 // Increased for better visibility
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return formatCurrency(context.raw);
+            },
+            title: function(tooltipItems) {
+              const index = tooltipItems[0].dataIndex;
+              const week = weeklyResults[index];
+              const startDateStr = week.startDate.toLocaleDateString();
+              const endDateStr = week.endDate.toLocaleDateString();
+              return `Week ${week.weekNumber}: ${startDateStr} - ${endDateStr}`;
+            }
+          },
+          backgroundColor: state.darkMode ? '#333' : '#fff',
+          titleColor: state.darkMode ? '#fff' : '#000',
+          bodyColor: state.darkMode ? '#fff' : '#000',
+          borderColor: state.darkMode ? '#555' : '#ddd',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        y: {
+          grid: {
+            color: gridColor
+          },
+          ticks: {
+            color: state.darkMode ? '#ffffff' : textColor, // Pure white in dark mode
+            font: {
+              size: 14, // Increased from 13
+              weight: 'bold' // Added bold
+            },
+            callback: function(value) {
+              return formatCurrency(value);
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: state.darkMode ? '#ffffff' : textColor, // Pure white in dark mode
+            font: {
+              size: 14, // Increased from 13
+              weight: 'bold' // Added bold
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+async function exportCurrentDataAsDefaults() {
+  try {
+    // Get all non-zero entries from state.tradeData
+    const nonZeroEntries = {};
+    let count = 0;
+    
+    for (const dateStr in state.tradeData) {
+      if (state.tradeData[dateStr] !== 0) {
+        nonZeroEntries[dateStr] = state.tradeData[dateStr];
+        count++;
+      }
+    }
+    
+    // Format as JavaScript object
+    let jsCode = '// Default values for trading journal\nconst defaultValues = {\n';
+    
+    for (const dateStr in nonZeroEntries) {
+      jsCode += `  "${dateStr}": ${nonZeroEntries[dateStr]},\n`;
+    }
+    
+    jsCode += '  // Add more default values as needed\n};\n\n';
+    jsCode += `// You can add other constants here as well\nconst STARTING_BALANCE = ${STARTING_BALANCE}; // ${STARTING_BALANCE} euros starting balance`;
+    
+    // Check if the File System Access API is available
+    if ('showSaveFilePicker' in window) {
+      try {
+        // Use previously saved file handle if available
+        let fileHandle;
+        
+        if (window.savedFileHandle) {
+          fileHandle = window.savedFileHandle;
+        } else {
+          // Otherwise, show the file picker
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: 'defaultValues.js',
+            types: [{
+              description: 'JavaScript Files',
+              accept: { 'text/javascript': ['.js'] },
+            }],
+          });
+          
+          // Save the file handle for future use
+          window.savedFileHandle = fileHandle;
+        }
+        
+        // Create a FileSystemWritableFileStream to write to
+        const writable = await fileHandle.createWritable();
+        
+        // Write the contents of the file to the stream
+        await writable.write(jsCode);
+        
+        // Close the file and write the contents to disk
+        await writable.close();
+        
+        // Show success message
+        const successDialog = document.createElement('div');
+        successDialog.style.position = 'fixed';
+        successDialog.style.top = '20px';
+        successDialog.style.left = '50%';
+        successDialog.style.transform = 'translateX(-50%)';
+        successDialog.style.backgroundColor = 'var(--profitable-bg)';
+        successDialog.style.color = 'var(--profitable-text)';
+        successDialog.style.padding = '10px 20px';
+        successDialog.style.borderRadius = '4px';
+        successDialog.style.boxShadow = '0 2px 8px var(--shadow-color)';
+        successDialog.style.zIndex = '2000';
+        successDialog.textContent = 'Successfully saved to defaultValues.js';
+        
+        document.body.appendChild(successDialog);
+        
+        // Remove success message after a few seconds
+        setTimeout(() => {
+          document.body.removeChild(successDialog);
+        }, 3000);
+        
+        return;
+      } catch (err) {
+        console.error('Error using File System Access API:', err);
+        // If there's an error, fall back to the manual copy method
+      }
+    }
+    
+    // Fall back to the manual copy dialog if File System Access API is not available
+    // or if there was an error using it
+    
+    // Create a pop-up dialog with the code
+    const dialog = document.createElement('div');
+    dialog.style.position = 'fixed';
+    dialog.style.top = '50%';
+    dialog.style.left = '50%';
+    dialog.style.transform = 'translate(-50%, -50%)';
+    dialog.style.width = '80%';
+    dialog.style.maxWidth = '800px';
+    dialog.style.maxHeight = '80vh';
+    dialog.style.backgroundColor = 'var(--bg-card)';
+    dialog.style.color = 'var(--text-primary)';
+    dialog.style.padding = '20px';
+    dialog.style.borderRadius = '8px';
+    dialog.style.boxShadow = '0 4px 20px var(--shadow-color)';
+    dialog.style.zIndex = '1000';
+    dialog.style.overflowY = 'auto';
+    
+    dialog.innerHTML = `
+      <h2 style="margin-bottom: 15px;">Generated Default Values (${count} entries)</h2>
+      <p style="margin-bottom: 10px;">Copy this code and save it to a file named <strong>defaultValues.js</strong> in the same folder as your HTML file.</p>
+      <div style="position: relative; margin-bottom: 15px;">
+        <textarea id="exportCodeTextarea" style="width: 100%; height: 300px; padding: 10px; font-family: monospace; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color);">${jsCode}</textarea>
+        <button id="copyButton" style="position: absolute; top: 10px; right: 10px; padding: 6px 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">Copy</button>
+      </div>
+      <div style="text-align: right;">
+        <button id="closeExportDialog" style="padding: 8px 16px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">Close</button>
+      </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    
+    // Add event listener to close button
+    document.getElementById('closeExportDialog').addEventListener('click', () => {
+      document.body.removeChild(dialog);
+    });
+    
+    // Add event listener to copy button
+    document.getElementById('copyButton').addEventListener('click', () => {
+      const textarea = document.getElementById('exportCodeTextarea');
+      textarea.select();
+      document.execCommand('copy');
+      
+      // Change button text to indicate success
+      const copyButton = document.getElementById('copyButton');
+      const originalText = copyButton.textContent;
+      copyButton.textContent = 'Copied!';
+      copyButton.style.backgroundColor = 'var(--profitable-bg)';
+      copyButton.style.color = 'var(--profitable-text)';
+      copyButton.style.borderColor = 'var(--profitable-text)';
+      
+      // Revert button text after a short delay
+      setTimeout(() => {
+        copyButton.textContent = originalText;
+        copyButton.style.backgroundColor = 'var(--bg-primary)';
+        copyButton.style.color = 'var(--text-primary)';
+        copyButton.style.borderColor = 'var(--border-color)';
+      }, 2000);
+    });
+  } catch (error) {
+    console.error("Error exporting data:", error);
+    alert("There was an error exporting your data. Please try again.");
+  }
+}
+
+
+
+  // Initialize the app when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', initialize);
+</script>
+</body>
+</html>
